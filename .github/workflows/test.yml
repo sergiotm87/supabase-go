@@ -18,9 +18,8 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
           cache: true
-      
       - name: Vet
         run: go vet ./...
 
       - name: Test
-        run: go test -v ./...
+        run: go test -race -v ./...
