@@ -21,7 +21,7 @@ const (
 
 type Client struct {
 	// Why is this a private field??
-	rest    *postgrest.Client
+	Rest    *postgrest.Client
 	Storage *storage_go.Client
 	// Auth is an interface. We don't need a pointer to an interface.
 	Auth      auth.Client
@@ -72,7 +72,7 @@ func NewClient(url, key string, options *ClientOptions) (*Client, error) {
 		schema = "public"
 	}
 
-	client.rest = postgrest.NewClient(url+REST_URL, schema, headers)
+	client.Rest = postgrest.NewClient(url+REST_URL, schema, headers)
 	client.Storage = storage_go.NewClient(url+STORAGE_URL, key, headers)
 	client.Auth = auth.New(url, key).WithCustomAuthURL(url + AUTH_URL)
 	client.Functions = functions.NewClient(url+FUNCTIONS_URL, key, headers)
@@ -83,13 +83,17 @@ func NewClient(url, key string, options *ClientOptions) (*Client, error) {
 // Wrap postgrest From method
 // From returns a QueryBuilder for the specified table.
 func (c *Client) From(table string) *postgrest.QueryBuilder {
-	return c.rest.From(table)
+	return c.Rest.From(table)
 }
 
 // Wrap postgrest Rpc method
 // Rpc returns a string for the specified function.
-func (c *Client) Rpc(name, count string, rpcBody interface{}) string {
-	return c.rest.Rpc(name, count, rpcBody)
+func (c *Client) Rpc(name, count string, rpcBody interface{}) (string, error) {
+	result := c.Rest.Rpc(name, count, rpcBody)
+	if c.Rest.ClientError != nil {
+		return "", c.Rest.ClientError
+	}
+	return result, nil
 }
 
 func (c *Client) SignInWithEmailPassword(email, password string) (types.Session, error) {
@@ -156,7 +160,7 @@ func (c *Client) RefreshToken(refreshToken string) (types.Session, error) {
 
 func (c *Client) UpdateAuthSession(session types.Session) {
 	c.Auth = c.Auth.WithToken(session.AccessToken)
-	c.rest.SetAuthToken(session.AccessToken)
+	c.Rest.SetAuthToken(session.AccessToken)
 	c.options.headers["Authorization"] = "Bearer " + session.AccessToken
 	c.Storage = storage_go.NewClient(c.options.url+STORAGE_URL, session.AccessToken, c.options.headers)
 	c.Functions = functions.NewClient(c.options.url+FUNCTIONS_URL, session.AccessToken, c.options.headers)
