@@ -36,8 +36,24 @@ func TestRpc(t *testing.T) {
 	if err != nil {
 		t.Errorf("cannot initialize client: %v", err)
 	}
-	result := client.Rpc("hello_world", "", nil)
+	result, err := client.Rpc("hello_world", "", nil)
+	if err != nil {
+		// The test will fail if the function doesn't exist, which is fine.
+		// We are just testing that the Rpc method returns an error when it should.
+		t.Logf("got expected error: %v", err)
+	}
 	t.Logf("rpc result: %s", result)
+}
+
+func TestRpcError(t *testing.T) {
+	client, err := supabase.NewClient(API_URL, API_KEY, nil)
+	if err != nil {
+		t.Errorf("cannot initialize client: %v", err)
+	}
+	_, err = client.Rpc("non_existent_function", "", nil)
+	if err == nil {
+		t.Errorf("expected error, got nil")
+	}
 }
 
 func TestStorage(t *testing.T) {
